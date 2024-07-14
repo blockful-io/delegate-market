@@ -1,11 +1,7 @@
 import { ThemeContext } from "@/contexts/theme-config";
 import { useContext, useState } from "react";
 
-export const BuyArbDelegationContainer = ({
-  children,
-}: {
-  children?: React.ReactNode;
-}) => {
+export const BuyArbDelegationContainer = () => {
   const { theme } = useContext(ThemeContext);
   const [isCtaHovered, setIsCtaHovered] = useState(false);
 
@@ -16,9 +12,14 @@ export const BuyArbDelegationContainer = ({
   const ctaConfig = {
     ...theme,
     opacity: isCtaHovered ? 0.6 : 1,
-    background: isCtaHovered ? theme.secondaryColor : theme.mainColor,
-    color: isCtaHovered ? theme.mainColor : theme.secondaryColor,
+    background: isCtaHovered
+      ? theme.hoveredButtonBackground
+      : theme.buttonBackground,
+    color: isCtaHovered ? theme.secondaryColor : theme.mainColor,
   };
+
+  const arbTotalSupplyInContract = 123456789;
+  const delegationPrice = 0.1;
 
   return (
     <div className="flex flex-col justify-center items-start font-semibold pb-16">
@@ -29,9 +30,60 @@ export const BuyArbDelegationContainer = ({
         Buy ARB delegation
       </h2>
       <div
-        className="w-full mt-4 lg:max-w-[509px] h-[279px] mb-[27px]"
-        style={{ backgroundColor: theme.secondaryColor, borderRadius: 18 }}
-      ></div>
+        className="w-full mt-4 lg:max-w-[509px] h-[279px] mb-[27px] p-4"
+        style={{ backgroundColor: theme.mainColor, borderRadius: 18 }}
+      >
+        <h3 className="flex flex-col">
+          <p
+            style={{
+              color: theme.secondaryColor,
+              fontWeight: 700,
+              opacity: 0.6,
+            }}
+          >
+            Available for delegation
+          </p>
+          <div
+            className="flex space-x-1"
+            style={{ color: theme.secondaryColor, fontSize: 40 }}
+          >
+            <strong>{arbTotalSupplyInContract.toLocaleString()}</strong>
+            <p>ARB</p>
+          </div>
+        </h3>
+        <h4 className="flex flex-col">
+          <p
+            style={{
+              color: theme.secondaryColor,
+              fontWeight: 700,
+              opacity: 0.6,
+            }}
+          >
+            Delegation price
+          </p>
+          <div
+            className="flex space-x-1"
+            style={{ color: theme.secondaryColor, fontSize: 40 }}
+          >
+            <strong>{delegationPrice.toLocaleString()}</strong>
+            <p>ARB</p>
+          </div>
+        </h4>
+        <button
+          onMouseEnter={() => onCTAHover({ hovering: true })}
+          onMouseLeave={() => onCTAHover({ hovering: false })}
+          className="transition mt-5 w-full"
+          style={{
+            backgroundColor: ctaConfig.background,
+            color: ctaConfig.color,
+            fontSize: 24,
+            borderRadius: 8,
+            padding: "8px 20px",
+          }}
+        >
+          Buy
+        </button>
+      </div>
       <p
         style={{
           color: theme.secondaryColor,
@@ -40,12 +92,9 @@ export const BuyArbDelegationContainer = ({
           fontSize: 15,
         }}
       >
-        This is a Dutch Auction, meaning the first bid wins and the cost to bid
-        goes down until it reaches the Minimum Value.
-        <br />
-        <br /> The previous holder of delegation has 24h to cover the offer and
-        keep the delegation to their address, by paying the same price as the
-        winner bid.
+        All revenue from delegation sales goes to the hook contracts attached to
+        WARB/WETH pools on Uniswap and PancakeSwap to be split between liquidity
+        providers at the time of liquidity removal.
       </p>
     </div>
   );

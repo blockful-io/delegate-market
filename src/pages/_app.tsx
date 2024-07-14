@@ -33,7 +33,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
               }}
               chains={chains}
             >
-              <Toaster />
+              <Toaster position="bottom-right" />
               <Component {...pageProps} />
             </RainbowKitProvider>
           </WagmiConfig>

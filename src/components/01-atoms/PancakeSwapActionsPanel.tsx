@@ -10,7 +10,7 @@ export const PancakeSwapActionsPanel = () => {
 
   const ctaConfig = {
     background:
-      isCtaHovered || isPanelVisible ? theme.secondaryColor : theme.mainColor,
+      isCtaHovered || isPanelVisible ? theme.mainColor : theme.secondaryColor,
     ...theme,
   };
 
@@ -45,18 +45,18 @@ export const PancakeSwapActionsPanel = () => {
           },
         ])}
         style={{
-          backgroundColor: theme.mainColor,
+          backgroundColor: theme.secondaryColor,
           borderRadius: 6,
         }}
       >
         <button
-          style={{ color: theme.secondaryColor, padding: "10px 12px" }}
+          style={{ color: theme.mainColor, padding: "10px 12px" }}
           className="hover:underline"
         >
           Swap WARB
         </button>
         <button
-          style={{ color: theme.secondaryColor, padding: "10px 12px" }}
+          style={{ color: theme.mainColor, padding: "10px 12px" }}
           className="hover:underline"
         >
           Add Liquidity

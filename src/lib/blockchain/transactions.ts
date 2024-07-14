@@ -1,148 +1,283 @@
-// import { Abi, Hash, TransactionReceipt } from "viem";
-// import { walletClient, publicClient } from "../../config/wallet";
-// import { toast } from "react-hot-toast"
+import { Hash, TransactionReceipt } from "viem";
+import { publicClient, ENV_DEFAULT_CHAIN_ID } from "../../config/wallet";
+import { toast } from "react-hot-toast";
+import { erc20ABI, WalletClient } from "wagmi";
+import {
+  ARB_TOKEN_SC_ADDRESS,
+  DELEGATE_MARKET_SC_ADDRESS,
+} from "../client/constants";
 
-// const handleTokenAmountApproval = async (
-//   token: any,
-//   chainId: number,
-//   authedAddress: `0x${string}`
-// ) => {
-//   if (!chainId) {
-//     throw new Error("User is not connected to any network");
-//   }
-//   if (!authedAddress) {
-//     throw new Error("User is not connected");
-//   }
+interface TokenAmountApprovalRequest {
+  isApproved: boolean;
+  amount: number;
+}
 
-//   try {
-//     const approved = await checkTokenAmountApproval(token, chainId, authedAddress);
+interface TokenAmountBlockchainApproval {
+  blockchainTxError?: string;
+  isApproved: boolean;
+  amount: bigint;
+}
 
-//     if (approved) {
-//       return {
-//         approved: true,
-//       };
-//     } else {
-//       await askTokenAmountApproval(token).then((isApproved) => {
-//         if (typeof isApproved !== "undefined") {
-//           return {
-//             approved: true,
-//           };
-//         } else {
-//           return {
-//             approved: false,
-//           };
-//         }
-//       });
-//     }
-//   } catch {
-//     return {
-//       approved: false,
-//     };
-//   }
-// };
+const ARB_DECIMALS = 10 ** 18;
 
-// const checkTokenAmountApproval = async (
-//   token: any,
-//   chainId: number,
-//   authedAddress: `0x${string}`
-// ) => {
-//   if (!chainId) {
-//     throw new Error("User is not connected to any network");
-//   }
-//   if (!authedAddress) {
-//     throw new Error("User is not connected");
-//   }
+// This function is the only one that communicates to Ui
+export const handleTokenAmountApproval = async (
+  amountToApprove: number,
+  authedAddress: `0x${string}`,
+  walletClient: WalletClient
+): Promise<TokenAmountApprovalRequest> => {
+  if (!authedAddress) {
+    toast.error("User is not connected");
+    return { isApproved: false, amount: amountToApprove };
+  }
 
-//   try {
-//     //const data = await publicClient({ chainId }).readContract({
-//     //abi: someAbi,
-//     //     functionName: "getApproved",
-//     //     address: authedAddress,
-//     //     args: [],
-//     //   });
+  const tokenAmountWithDecimals = BigInt(amountToApprove * ARB_DECIMALS);
 
-//     //   return data == "something";
-//     return true;
-//   } catch (e) {
-//     console.error(e);
-//     return false;
-//   }
-// };
+  try {
+    const approved = await checkTokenAmountApproval(
+      tokenAmountWithDecimals,
+      authedAddress
+    );
+    if (approved?.blockchainTxError) {
+      toastTxError(approved?.blockchainTxError);
+      return {
+        isApproved: approved.isApproved,
+        amount: amountToApprove,
+      };
+    }
 
-// const askTokenAmountApproval = async (
-//   token: any,
-//   chainId: number,
-//   authedAddress: `0x${string}`
-// ): Promise<TransactionReceipt | undefined> => {
-//   if (!chainId) {
-//     throw new Error("User is not connected to any network");
-//   }
-//   if (!authedAddress) {
-//     throw new Error("User is not connected");
-//   }
+    if (approved.isApproved) {
+      toast.success("Transaction successful");
+      return {
+        isApproved: approved.isApproved,
+        amount: amountToApprove,
+      };
+    } else {
+      const response = await askTokenAmountApproval(
+        authedAddress,
+        walletClient,
+        tokenAmountWithDecimals
+      );
 
-//         let txReceipt = {} as TransactionReceipt;
+      if (response.blockchainTxError) {
+        toastTxError(response?.blockchainTxError);
+      } else {
+        toast.success("Transaction successful");
+      }
 
-//   try {
-//       const abi = SomeABI as Abi;
-//       const functionName = "approve";
+      return {
+        isApproved: response.isApproved,
+        amount: amountToApprove,
+      };
+    }
+  } catch (error) {
+    toastTxError(error);
+    return {
+      isApproved: false,
+      amount: amountToApprove,
+    };
+  }
+};
 
-//       try {
-//         const { request } = await publicClient({ chainId }).simulateContract({
-//           account: authedAddress,
-//           address: contractAddress,
-//           args: [],
-//           functionName,
-//           abi,
-//         });
+const checkTokenAmountApproval = async (
+  tokenAmount: bigint,
+  authedAddress: `0x${string}`
+) => {
+  if (!authedAddress) {
+    toast.error("User is not connected");
+    return { isApproved: false, amount: tokenAmount };
+  }
 
-//         const transactionHash: Hash = await walletClient.writeContract(request);
+  try {
+    const allowedAmount = await publicClient({
+      chainId: ENV_DEFAULT_CHAIN_ID,
+    }).readContract({
+      abi: erc20ABI,
+      address: ARB_TOKEN_SC_ADDRESS,
+      functionName: "allowance",
+      args: [authedAddress, DELEGATE_MARKET_SC_ADDRESS],
+    });
 
-//         while (typeof txReceipt.blockHash === "undefined") {
-//           /*
-//             It is guaranteed that at some point we'll have a valid TransactionReceipt in here.
-//             If we had a valid transaction sent (which is confirmed at this point by the try/catch block),
-//             it is a matter of waiting the transaction to be mined in order to know whether it was successful or not.
+    return {
+      isApproved: tokenAmount <= allowedAmount,
+      amount: tokenAmount,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      isApproved: false,
+      amount: tokenAmount,
+      blockchainTxError: String(error),
+    };
+  }
+};
 
-//             So why are we using a while loop here?
-//             - Because it is possible that the transaction was not yet mined by the time
-//             we reach this point. So we keep waiting until we have a valid TransactionReceipt.
-//           */
+const askTokenAmountApproval = async (
+  authedAddress: `0x${string}`,
+  walletClient: WalletClient,
+  tokenAmount: bigint
+): Promise<TokenAmountBlockchainApproval> => {
+  if (!authedAddress) {
+    toast.error("User is not connected");
+    return { isApproved: false, amount: tokenAmount };
+  }
 
-//           const transactionReceipt = await publicClient({
-//             chainId,
-//           }).waitForTransactionReceipt({
-//             hash: transactionHash,
-//           });
+  let txReceipt = {} as TransactionReceipt;
 
-//           if (transactionReceipt) {
-//             txReceipt = transactionReceipt;
-//           }
-//         }
-//       } catch (error) {
-//         console.error(error);
-//       }
-//     } catch (error) {
-//       console.error(error);
-//     }
+  try {
+    try {
+      const { request } = await publicClient({
+        chainId: ENV_DEFAULT_CHAIN_ID,
+      }).simulateContract({
+        abi: erc20ABI,
+        account: authedAddress,
+        functionName: "approve",
+        address: ARB_TOKEN_SC_ADDRESS,
+        args: [authedAddress, BigInt(tokenAmount)],
+      });
 
-//     if (txReceipt.success) {
-//       console.log("Token amount was approved");
+      const transactionHash: Hash = await walletClient.writeContract(request);
 
-//       return txReceipt;
-//     } else {
-//         console.error("Token amount was not approved");
-//     }
-//   } catch (error) {
-//     toastTxError(String(error));
-//     console.error(error);
-//   }
-// };
+      while (typeof txReceipt.blockHash === "undefined") {
+        /*
+          It is guaranteed that at some point we'll have a valid TransactionReceipt in here.
+          If we had a valid transaction sent (which is confirmed at this point by the try/catch block),
+          it is a matter of waiting the transaction to be mined in order to know whether it was successful or not.
 
-// const toastTxError = (e: string) => {
-//   if (e.includes("rejected") || e.includes("declined")) {
-//     toast.error("Transaction rejected");
-//   } else {
-//     toast.error("Transaction failed. Please contact our team.");
-//   }
-// };
+          So why are we using a while loop here?
+          - Because it is possible that the transaction was not yet mined by the time
+          we reach this point. So we keep waiting until we have a valid TransactionReceipt.
+        */
+
+        const transactionReceipt = await publicClient({
+          chainId: ENV_DEFAULT_CHAIN_ID,
+        }).waitForTransactionReceipt({
+          hash: transactionHash,
+        });
+
+        if (transactionReceipt) {
+          txReceipt = transactionReceipt;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        isApproved: false,
+        amount: tokenAmount,
+        blockchainTxError: String(error),
+      };
+    }
+  } catch (error) {
+    console.error(error);
+    return {
+      isApproved: false,
+      amount: tokenAmount,
+      blockchainTxError: String(error),
+    };
+  }
+
+  if (txReceipt.status === "success") {
+    console.log("Token amount was approved");
+    return { isApproved: true, amount: tokenAmount };
+  } else {
+    console.error("Token amount was not approved");
+    return { isApproved: false, amount: tokenAmount };
+  }
+};
+
+const swapArbToWarb = async (
+  authedAddress: `0x${string}`,
+  walletClient: WalletClient,
+  tokenAmount: bigint
+): Promise<TokenAmountBlockchainApproval> => {
+  if (!authedAddress) {
+    toast.error("User is not connected");
+    return { isApproved: false, amount: tokenAmount };
+  }
+
+  let txReceipt = {} as TransactionReceipt;
+
+  try {
+    try {
+      const { request } = await publicClient({
+        chainId: ENV_DEFAULT_CHAIN_ID,
+      }).simulateContract({
+        abi: erc20ABI,
+        account: authedAddress,
+        functionName: "approve",
+        address: ARB_TOKEN_SC_ADDRESS,
+        args: [authedAddress, BigInt(tokenAmount)],
+      });
+
+      const transactionHash: Hash = await walletClient.writeContract(request);
+
+      while (typeof txReceipt.blockHash === "undefined") {
+        /*
+          It is guaranteed that at some point we'll have a valid TransactionReceipt in here.
+          If we had a valid transaction sent (which is confirmed at this point by the try/catch block),
+          it is a matter of waiting the transaction to be mined in order to know whether it was successful or not.
+
+          So why are we using a while loop here?
+          - Because it is possible that the transaction was not yet mined by the time
+          we reach this point. So we keep waiting until we have a valid TransactionReceipt.
+        */
+
+        const transactionReceipt = await publicClient({
+          chainId: ENV_DEFAULT_CHAIN_ID,
+        }).waitForTransactionReceipt({
+          hash: transactionHash,
+        });
+
+        if (transactionReceipt) {
+          txReceipt = transactionReceipt;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        isApproved: false,
+        amount: tokenAmount,
+        blockchainTxError: String(error),
+      };
+    }
+  } catch (error) {
+    console.error(error);
+    return {
+      isApproved: false,
+      amount: tokenAmount,
+      blockchainTxError: String(error),
+    };
+  }
+
+  if (txReceipt.status === "success") {
+    console.log("Token amount was approved");
+    return { isApproved: true, amount: tokenAmount };
+  } else {
+    console.error("Token amount was not approved");
+    return { isApproved: false, amount: tokenAmount };
+  }
+};
+
+const toastTxError = (e: unknown) => {
+  if (
+    String(e).includes("rejected") ||
+    String(e).includes("declined") ||
+    String(e).includes("denied")
+  ) {
+    toast.error("Please approve the transaction");
+  } else {
+    toast.error("Transaction failed. Please contact us!");
+  }
+};
+
+export const getArbTotalSupply = async () => {
+  const totalSupply = await publicClient({
+    chainId: ENV_DEFAULT_CHAIN_ID,
+  }).readContract({
+    abi: erc20ABI,
+    address: ARB_TOKEN_SC_ADDRESS,
+    functionName: "totalSupply",
+  });
+
+  return totalSupply;
+};

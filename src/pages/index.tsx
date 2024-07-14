@@ -7,7 +7,7 @@ import {
   TheFooter,
   TheHeader,
   UniswapSwapActionsPanel,
-  WrapArbContainer,
+  ArbSwapContainer,
 } from "@/components";
 
 const IndexPage: NextPage = () => {
@@ -21,14 +21,14 @@ const IndexPage: NextPage = () => {
       }}
     >
       <TheHeader />
-      <main className="mt-[160px] relative mx-auto w-full max-w-[300px] md:max-w-[768px] lg:max-w-[1280px] lg:space-x-[10%] flex flex-col lg:flex-row lg:items-center">
-        <div className="mb-16 lg:mb-0">
-          <WrapArbContainer>
+      <main className="mt-[160px] relative mx-auto w-full max-w-[300px] md:max-w-[768px] lg:max-w-[1280px] lg:space-x-[5%] flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-16 lg:mb-0 lg:max-w-[45%]">
+          <ArbSwapContainer>
             <div className="flex space-x-6 mt-6">
               <PancakeSwapActionsPanel />
               <UniswapSwapActionsPanel />
             </div>
-          </WrapArbContainer>
+          </ArbSwapContainer>
         </div>
 
         {/* Visual Screen Dividers */}
@@ -42,7 +42,7 @@ const IndexPage: NextPage = () => {
         ></div>
         {/* Visual Screen Dividers */}
 
-        <div className="mt-16 lg:mt-0">
+        <div className="mt-16 lg:mt-0 lg:max-w-[45%]">
           <BuyArbDelegationContainer />
         </div>
       </main>

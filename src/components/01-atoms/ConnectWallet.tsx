@@ -16,7 +16,7 @@ export const ConnectWallet = () => {
     background: isCtaHovered
       ? theme.hoveredButtonBackground
       : theme.buttonBackground,
-    color: isCtaHovered ? theme.hoveredButtonTextColor : theme.buttonTextColor,
+    color: isCtaHovered ? theme.secondaryColor : theme.buttonTextColor,
   };
 
   return (
@@ -61,9 +61,9 @@ export const ConnectWallet = () => {
                       padding: "8px 16px",
                       fontSize: 16,
                       borderRadius: 6,
-                      transition: "ease-in-out 0.4s",
                       marginBottom: 8,
                     }}
+                    className="transition"
                     onMouseEnter={() => onCTAHover({ hovering: true })}
                     onMouseLeave={() => onCTAHover({ hovering: false })}
                   >
