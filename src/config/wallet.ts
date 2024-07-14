@@ -34,11 +34,6 @@ const { chains, publicClient } = configureChains(
   [alchemyProvider({ apiKey: alchemyApiKey }), publicProvider()]
 );
 
-const walletClient = createWalletClient({
-  chains,
-  projectID,
-});
-
 const { connectors } = getDefaultWallets({
   appName: "Blockful Frontend Web3 Boilerplate",
   projectId: projectID,
@@ -51,4 +46,4 @@ const wagmiClientConfig = createConfig({
   publicClient,
 });
 
-export { chains, wagmiClientConfig, publicClient, walletClient };
+export { chains, wagmiClientConfig, publicClient };
