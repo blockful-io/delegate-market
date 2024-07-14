@@ -18,7 +18,7 @@ export const BuyArbDelegationContainer = () => {
     color: isCtaHovered ? theme.secondaryColor : theme.mainColor,
   };
 
-  const arbTotalSupplyInContract = 123456789;
+  const arbTotalSupplyInContract = 123456;
   const delegationPrice = 0.1;
 
   return (
